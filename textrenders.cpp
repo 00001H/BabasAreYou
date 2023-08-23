@@ -1,30 +1,29 @@
-#include<pygame.hpp>
 #include"libBaba/baba.hpp"
 using namespace pygame::event;
 using namespace pygame::constants;
 using namespace pygame::display;
-std::string text{"BEEP"};
-void onchar(GLFWwindow*,uint32_t codepoint){
+str text{u8"BEEP"sv};
+void onchar(GLFWwindow*,const uint32_t codepoint){
     if(codepoint==' '||text_amap.contains(codepoint)){
         text += char(codepoint);
     }
 }
 glm::vec2 dims={1920.0f,1080.0f};
-void aspectie_resz(Window&,int wi,int ht){
-    glViewport(0,0,wi,ht);
-    pygame::setRenderRect(wi,ht,texture_shader_colored);
-    dims.x = float(wi);
-    dims.y = float(ht);
+void aspectie_resz(Window& w){
+    w.restore_viewport();
+    pygame::setRenderRect(float(w.width()),float(w.height()),texture_shader_colored);
+    dims.x = float(w.width());
+    dims.y = float(w.width());
 }
 int main(){
     pygame::init();
     pygame::glVer(4,6);
-    Window wn{1600,900,"_"};
+    Window wn{1600,900,u8"_"sv};
     wn.set_as_OpenGL_target();
-    wn.configureRepeat(18u,3u);
+    wn.configure_repeat(18u,3u);
     wn.onresize(aspectie_resz);
+    pygame::setup_template_0();
     glClearColor(0.0f,0.0f,0.0f,1.0f);
-    pygame::setupTemplate0();
     ld_babatex();
     glfwSetCharCallback(wn.glfw_handle(),onchar);
     glm::vec2 size;

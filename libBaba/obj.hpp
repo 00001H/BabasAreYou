@@ -5,7 +5,7 @@ class ObjectType{
     float z;
     friend class Word;
     public:
-        ObjectType(ObjectRender&& rndr,float z=3.0f) : render(std::move(rndr)), z(z){}
+        ObjectType(ObjectRender&& rndr,const float z=3.0f) : render(std::move(rndr)), z(z){}
         float zl() const{
             return z;
         }
@@ -16,8 +16,15 @@ class ObjectType{
 class BabaObject{
     const ObjectType* ot;
     Direction di;
-    public:
+    str _special;
     std::unordered_set<const Property*> props;
+    public:
+        sv special() const{
+            return _special;
+        }
+        void setspecial(sv sv){
+            _special = sv;
+        }
         void reset_props(){
             props.clear();
         }
@@ -40,26 +47,33 @@ class BabaObject{
         void add_prop(const Property* prop){
             props.insert(prop);
         }
-        ActionResult moved(const pBo& self,RWIState& ls, const Direction& dir) const{
+        ActionResult moved(const pBo& self,RWIState& ls, Direction dir) const{
             ActionResult rslt = ActionResult::NOTHING_CHECKED;
             for(const auto& prop : props){
                 rslt &= prop->on_moved(self,ls,dir);
             }
             return rslt;
         }
-        ActionResult pushed(const pBo& self,RWIState& ls, const Direction& dir,const pBo& src) const{
+        ActionResult pushed(const pBo& self,RWIState& ls, Direction dir,const pBo& src) const{
             ActionResult rslt = ActionResult::NOTHING_CHECKED;
             for(const auto& prop : props){
                 rslt &= prop->on_pushed(self,ls,dir,src);
             }
             return rslt;
         }
-        void on_turn_start(const pBo& self,RWIState& ls,const PlayerAction& pa) const{
+        ActionResult overlapped(const pBo& self,RWIState& ls,const pBo& src) const{
+            ActionResult rslt = ActionResult::NOTHING_CHECKED;
+            for(const auto& prop : props){
+                rslt &= prop->overlapped(self,ls,src);
+            }
+            return rslt;
+        }
+        void on_turn_start(const pBo& self,RWIState& ls,const WorldAction& pa) const{
             for(const auto& prop : props){
                 prop->on_turn_start(self,ls,pa);
             }
         }
-        void on_turn_end(const pBo& self,const RWIState& ls,const PlayerAction& pa) const{
+        void on_turn_end(const pBo& self,const RWIState& ls,const WorldAction& pa) const{
             for(const auto& prop : props){
                 prop->on_turn_end(self,ls,pa);
             }
@@ -67,7 +81,7 @@ class BabaObject{
         const ObjectType* get_type() const{
             return ot;
         }
-        BabaObject(const ObjectType* t,Direction d=Direction::UP) : ot(t), di(d){}
+        BabaObject(const ObjectType* t,const Direction d=Direction::UP,const sv spcl=u8""sv) : ot(t), di(d), _special(spcl){}
         void draw(pygame::Rect bbox) const{
             ot->draw(bbox,di);
             for(const auto& prop : props){
@@ -75,12 +89,12 @@ class BabaObject{
             }
         }
 };
-pBo npBo(const ObjectType* ot,Direction d=Direction::UP){
-    return pBo(new BabaObject(ot,d));
+pBo npBo(const ObjectType* ot,const Direction d=Direction::UP,const sv spcl=u8""sv){
+    return pBo(new BabaObject(ot,d,spcl));
 }
-inline const ObjectType* objtype(const std::string&);
-pBo npBo(const std::string& objn,Direction d=Direction::UP){
-    return pBo(new BabaObject(objtype(objn),d));
+inline const ObjectType* objtype(sv);
+pBo npBo(sv objn,const Direction d=Direction::UP,const sv spcl=u8""sv){
+    return pBo(new BabaObject(objtype(objn),d,spcl));
 }
 template<cppp::aret_fun<const pBo&> fn>
 void NounLike::allAccepts(const objmap_t& mp,const fn& f) const{

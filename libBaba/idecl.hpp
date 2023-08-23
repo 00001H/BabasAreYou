@@ -9,14 +9,14 @@ using pAc = std::shared_ptr<Action>;
 using acqu_t = std::vector<pAc>;
 
 class Direction;
-std::string debug(const Direction&);
-std::string debug(const coords_t& c){
-    return std::to_string(c.x)+"@"+std::to_string(c.y);
+str debug(Direction);
+str debug(const coords_t& c){
+    return cppp::to_u8string(c.x)+u8'@'+cppp::to_u8string(c.y);
 }
 class Animation;
 using pAnimation = std::unique_ptr<Animation>;
 using anqu_t = std::unordered_map<pBo,std::vector<pAnimation>>;
-class PlayerAction;
+class WorldAction;
 class Level;
 class LevelState;
 class RWIState;
@@ -82,27 +82,9 @@ class ActionResult{
             return !fail();
         }
 };
-inline size_t babaFrame(){
+inline size_t baba_frame(){
     return size_t(std::floor(glm::fract(glfwGetTime()*1.4f)*3.0f));
 }
-
-#ifdef ENABLE_PR_DEBUG
-#ifdef LOG_STDOUT
-void dbgPrint(const std::string& msg){
-    rslv_logger.log(msg);
-}
-#define CLEAR_DBG_MSG
-#else
-std::string DBGMSG;
-void dbgPrint(const std::string& msg){
-    DBGMSG += msg+"\n";
-}
-#define CLEAR_DBG_MSG DBGMSG.clear()
-#endif
-#else
-#define dbgPrint(...)
-#define CLEAR_DBG_MSG
-#endif
 
 float fit(glm::vec2 obj,glm::vec2 space){
     float xc = (obj.x==0.0f?1.0f:space.x/obj.x);
@@ -113,7 +95,7 @@ class LevelRenderInfo{
     pygame::Point ltop;
     float tilesz;
     public:
-        LevelRenderInfo(const pygame::Point& lt,float s) : ltop(lt), tilesz(s){}
+        LevelRenderInfo(const pygame::Point& lt,const float s) : ltop(lt), tilesz(s){}
         pygame::Point pos() const{
             return ltop;
         }

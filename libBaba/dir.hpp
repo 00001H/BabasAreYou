@@ -14,10 +14,10 @@ class Direction{
             if(d==LEFT||d==UP)return -1;
             return 1;
         }
-        bool operator==(const Direction& other) const{
+        bool operator==(const Direction other) const{
             return d==other.d;
         }
-        bool operator!=(const Direction& other) const{
+        bool operator!=(const Direction other) const{
             return d!=other.d;
         }
         bool is_x() const{
@@ -52,32 +52,32 @@ class Direction{
             return static_cast<_Di>(uint8_t((uint8_t(d)+1u)%4u));
         }
 };
-std::string debug(const Direction& c){
+str debug(const Direction c){
     if(c==Direction::UP){
-        return "UP";
+        return u8"UP"s;
     }else if(c==Direction::DOWN){
-        return "DOWN";
+        return u8"DOWN"s;
     }else if(c==Direction::LEFT){
-        return "LEFT";
+        return u8"LEFT"s;
     }else if(c==Direction::RIGHT){
-        return "RIGHT";
+        return u8"RIGHT"s;
     }
-    return "Error Direction";
+    return u8"Error Direction"s;
 }
-class PlayerAction{
+class WorldAction{
     std::optional<Direction> dir;
     class idle_t{};
-    friend struct std::hash<PlayerAction>;
+    friend struct std::hash<WorldAction>;
     public:
-        bool operator==(const PlayerAction& other) const{
+        bool operator==(const WorldAction& other) const{
             return dir==other.dir;
         }
-        bool operator!=(const  PlayerAction& other) const{
+        bool operator!=(const  WorldAction& other) const{
             return dir!=other.dir;
         }
         static constexpr idle_t IDLE{};
-        PlayerAction(const Direction& d) : dir(d){}
-        PlayerAction(const idle_t&) : dir(std::nullopt){}
+        WorldAction(const Direction d) : dir(d){}
+        WorldAction(const idle_t&) : dir(std::nullopt){}
         bool idle() const{
             return !dir.has_value();
         }
@@ -93,8 +93,8 @@ namespace std{
         }
     };
     template<>
-    struct hash<::PlayerAction>{
-        size_t operator()(const ::PlayerAction& pa) const noexcept{
+    struct hash<::WorldAction>{
+        size_t operator()(const ::WorldAction& pa) const noexcept{
             if(pa.dir.has_value()){
                 return hash<::Direction>()(pa.dir.value());
             }

@@ -5,3 +5,4 @@
 #include"rstry.hpp"
 #include"conf.hpp"
 #include"world.hpp"
+#include"input.hpp"

@@ -1,5 +1,6 @@
 #pragma once
 #include"idecl.hpp"
+#include"dir.hpp"
 class Word{
     public:
         virtual bool isSentenceStart() const = 0;
@@ -43,8 +44,8 @@ class PropertyWord : public Word{
 };
 class Rule{
     public:
-        virtual std::string stringify() const{
-            return "<UNKNOWN>";
+        virtual str stringify() const{
+            return u8"<UNKNOWN>"s;
         }
         virtual void process(RWIState&) const{}
         virtual void exec(RWIState&) const{}
@@ -52,14 +53,17 @@ class Rule{
 };
 class Property{
     public:
-        virtual ActionResult on_moved(const pBo&,RWIState&,const Direction&) const{
+        virtual ActionResult on_moved([[maybe_unused]] const pBo& dst,RWIState&,Direction) const{
             return ActionResult::NOTHING_CHECKED;
         }
-        virtual ActionResult on_pushed(const pBo&,RWIState&,const Direction&,const pBo&) const{
+        virtual ActionResult on_pushed([[maybe_unused]] const pBo& dst,RWIState&,Direction,[[maybe_unused]] const pBo& src) const{
             return ActionResult::NOTHING_CHECKED;
         }
-        virtual void on_turn_start(const pBo&,RWIState&,const PlayerAction&) const{}
-        virtual void on_turn_end(const pBo&,const RWIState&,const PlayerAction&) const{}
+        virtual ActionResult overlapped([[maybe_unused]] const pBo& dst,RWIState&,[[maybe_unused]] const pBo& src) const{
+            return ActionResult::NOTHING_CHECKED;
+        }
+        virtual void on_turn_start(const pBo&,RWIState&,const WorldAction&) const{}
+        virtual void on_turn_end(const pBo&,const RWIState&,const WorldAction&) const{}
         virtual void draw_vfx(const pygame::Rect&,const BabaObject&) const{}
         virtual ~Property(){};
 };
@@ -71,7 +75,7 @@ class Action{
 };
 class Animation{
     public:
-        virtual void draw(const pBo&,const LevelState&,const LevelRenderInfo&,float progress) const = 0;
+        virtual void draw(const pBo&,const LevelState&,const LevelRenderInfo&,const float progress) const = 0;
         virtual void fixObjects(const std::unordered_map<pBo,pBo>&){}
         virtual ~Animation(){}
 };

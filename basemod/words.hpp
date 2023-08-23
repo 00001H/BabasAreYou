@@ -20,8 +20,8 @@ class Transform : public Rule{
     const NounLike* src;
     const NounLike* dst;
     public:
-        std::string stringify() const override{
-            return "transform "+wordname(src)+" into "+wordname(dst);
+        str stringify() const override{
+            return u8"transform "sv+wordname(src)+u8" into "sv+wordname(dst);
         }
         Transform(const NounLike* x, const NounLike* y) : src(x), dst(y){}
         void exec(RWIState& lvl) const override{
@@ -34,25 +34,16 @@ enum class V_BIA{
     BE,IS,ARE//No AM, sorry!
 };
 template<V_BIA stz>
-consteval const char* BV_NAME(){
-    switch(stz){
-        case V_BIA::IS:
-            return "IS";
-        case V_BIA::ARE:
-            return "ARE";
-        default:
-            return "BE";
-    }
-}
-//NOTE: V_BIA template parameter is only "cosmetic", and this class will NOT check for its validity
+constexpr const char8_t* BV_NAME = (stz==V_BIA::IS?u8"IS":(stz==V_BIA::ARE?u8"ARE":u8"BE"));
+//NOTE: V_BIA template parameter is only for tostring, and this class will NOT check for its validity
 template<V_BIA stz>
 class ApplyProperty : public Rule{
     const NounLike* src;
     const PropertyWord* dst;
     public:
         ApplyProperty(const NounLike* s,const PropertyWord* p) : src(s), dst(p){}
-        std::string stringify() const override{
-            return wordname(src)+' '+BV_NAME<stz>()+' '+wordname(dst);
+        str stringify() const override{
+            return wordname(src)+u8' '+BV_NAME<stz>+u8' '+wordname(dst);
         }
         void process(RWIState& lvl) const override{
             src->allAccepts(lvl.cobjmap(),[&lvl,this](const pBo& obj){

@@ -5,19 +5,27 @@
 #include"dir.hpp"
 class RenderComponent{
     public:
-        virtual void render(pygame::Rect,Direction) const = 0;
+        virtual void render(pygame::Rect bounds,Direction) const = 0;
         virtual ~RenderComponent(){};
 };
-class TextRender : public RenderComponent{
-    const std::string text;
-    const pygame::Color color;
-    const bool inv;
+class FilledSquareRender : public RenderComponent{
+    pygame::Color color;
     public:
-        TextRender(const std::string text,pygame::Color c,bool inv) : text(text), color(c), inv(inv){}
+        FilledSquareRender(pygame::Color c) : color(c){}
+        void render(pygame::Rect bounds,Direction) const override{
+            pygame::draw::rect(bounds,color);
+        }
+};
+class TextRender : public RenderComponent{
+    str text;
+    pygame::Color color;
+    bool inv;
+    public:
+        TextRender(const sv text,pygame::Color c=WHITE,bool inv=false) : text(text), color(c), inv(inv){}
         void render(pygame::Rect bounds,Direction) const override{
             static constexpr float FSW = float(SPRITE_DIM);
             static constexpr float FSH = float(SPRITE_DIM);
-            size_t frame = babaFrame();
+            size_t frame = baba_frame();
             glm::vec2 size = babatext_info(text,1.0f);
             if(size.x==0.0f){
                 size.x=1.0f;
@@ -37,7 +45,7 @@ class TextRender : public RenderComponent{
                 pygame::setRenderRect(1920.0f,1080.0f,texture_shader_colored);
                 pygame::Framebuffer::unbind();
                 if(pygame::display::glCtx==nullptr){
-                    throw std::logic_error("GL context window not found?!");
+                    throw cppp::u8_logic_error(u8"GL context window not found?!"sv);
                 }
                 pygame::display::glCtx->restore_viewport();
                 texture_sub_colored.use();
@@ -64,22 +72,23 @@ class TextRender : public RenderComponent{
             }
         }
 };
+using pRenderComponent = std::unique_ptr<RenderComponent>;
 class ObjectRender{
-    using CompList_t = std::vector<std::unique_ptr<RenderComponent>>;
-    std::unique_ptr<CompList_t> cpns;
+    std::vector<pRenderComponent> cpns;
     public:
-        ObjectRender() : cpns(std::make_unique<CompList_t>()){
+        ObjectRender() : cpns(){}
+        ObjectRender(pRenderComponent&& pr) : cpns(){
+            cpns.emplace_back(std::move(pr));
         }
-        static ObjectRender plain_text(const std::string& tex,pygame::Color c=pygame::color::WHITE,bool invert=false){
-            ObjectRender r;
-            r.add_component(new TextRender(tex,c,invert));
-            return r;
+        template<std::convertible_to<pRenderComponent> ...RC>
+        ObjectRender(RC&& ...a) : cpns(){
+            cppp::expand(cpns,std::forward<RC>(a)...);
         }
         void add_component(RenderComponent*&& rc){
-            cpns->emplace_back(rc);
+            cpns.emplace_back(rc);
         }
-        void render(pygame::Rect bounds,Direction dir) const{
-            for(const auto& rc : (*cpns)){
+        void render(pygame::Rect bounds,const Direction dir) const{
+            for(const auto& rc : cpns){
                 rc->render(bounds,dir);
             }
         }

@@ -100,7 +100,7 @@ class LevelState{
         void render(const LevelRenderInfo& lri,const anqu_t& skip_animated) const{
             for(const auto& pbj : skip_animated){
                 if(!cobjmap().contains(pbj.first)){
-                    dbgPrint("Stray animation source");
+                    cppp::fcout << u8"WARN: Stray animation source"sv << std::endl;
                 }
             }
             for(const auto& [loc,contents] : cboard()){
@@ -141,7 +141,7 @@ void find_rules_at(rlqu_t& rulz, const coords_t& c,const LevelState& ls){
         hasw = false;
         for(const auto& obj : ls.cboard().at(scan)){
             if(words.hasKey(obj->get_type())){
-                wds.push_back(words.lookup(obj->get_type()));
+                wds.emplace_back(words.lookup(obj->get_type()));
                 hasw = true;
                 break;//TODO: Stacked text support
             }
@@ -179,12 +179,33 @@ class RWIState{
     void mvInto(LevelState& buf) const{
         buf = std::move(write);
     
-    }std::vector<std::pair<pBo,pAnimation>> anim;
+    }
+    std::vector<std::pair<pBo,pAnimation>> anim;
+/*
+Mutability of `notice`: What does `const RWIState` really mean?
+Currently, `Property::on_turn_end` takes a `const RWIState&`. This is
+reasonable: any writes to it will not actually take effect, so there
+is no reason to allow any writes in the first place, as making it
+writable might confuse users. However, `notice` came along; `notice`
+is NOT r/w isolated, and changing it in `Property::on_turn_end` is
+actually reasonable(and useful). Since the philosophy of `const` is
+to improve maintainability, I decided that making `notice` `mutable`
+is better: the alternative would be to make functions like `on_turn_end`
+take a mutable `RWIState&`. Then, we would have to seperately document
+that you should not change it(except for adding notices) in that method.
+*/
+    mutable str notice;
     public:
         RWIState(const LevelState* ls) : fix(), read(ls), write(read->deep_copy(&fix)){}
         RWIState(const RWIState&) = delete;
         RWIState& operator=(const RWIState&) = delete;
         RWIState(RWIState&&) = default;
+        void add_notice(sv ntc) const{
+            notice += u8"\n"sv+ntc;
+        }
+        str& get_notice() const{
+            return notice;
+        }
         void add_action(const pAc& ac){
             write.add_action(ac);
             write.acqu().back()->fixObjects(fix);
@@ -193,7 +214,7 @@ class RWIState{
             anim.emplace_back(fix.at(bo),std::move(pa));
             anim.back().second->fixObjects(fix);
         }
-        ActionResult test_nudge(const Direction& ndg,const pBo& obj){
+        ActionResult test_nudge(const Direction ndg,const pBo& obj){
             ActionResult mr = obj->moved(obj,*this,ndg);
             if(mr.success()){
                 coords_t dest = cobjmap().at(obj)+ndg.off();
@@ -271,34 +292,43 @@ class RWIState{
         }
         void remove(const pBo& bo){
             if(!fix.contains(bo)){
-                std::cerr << "Warning: remove() argument not in transformation list" << std::endl;
+                cppp::fcerr << u8"Warning: remove() argument not in transformation list"sv << std::endl;
                 return;
             }
             write.remove(fix.at(bo));
         }
-        void move(const pBo& bo,coords_t newpos){
+        ActionResult move(const pBo& bo,coords_t newpos){
             if(!fix.contains(bo)){
-                std::cerr << "Warning: move() argument not in fix list" << std::endl;
-                return;
+                throw cppp::u8_logic_error(u8"Warning: move() argument not in fix list"sv);
+            }
+            if(cboard().contains(newpos)){
+                ActionResult rslt = ActionResult::NOTHING_CHECKED;
+                for(const pBo& obj : cboard().at(newpos)){
+                    rslt &= obj->overlapped(obj,*this,bo);
+                }
+                if(!rslt.success()){
+                    return rslt;
+                }
             }
             add_animation(bo,pAnimation(new AniMove(where(bo))));
             write.move(fix.at(bo),newpos);
+            return ActionResult::SUCCESS;
         }
 };
 class Level{
     private:
         LevelState state;
+        levelsz_t w,h;
+        rlqu_t baserules;
+        anqu_t animations;
+    public:
         const board_t& board() const{
             return state.cboard();
         }
         const objmap_t& posmap() const{
             return state.cobjmap();
         }
-        levelsz_t w,h;
-        rlqu_t baserules;
-        anqu_t animations;
-    public:
-        void clearAnimations(){
+        void clear_animations(){
             animations.clear();
         }
         bool has_obj(const pBo& o) const{
@@ -306,7 +336,7 @@ class Level{
         }
         void clear(){
             state.clear();
-            clearAnimations();
+            clear_animations();
         }
         void find_rules(rlqu_t& rq){
             ::find_rules(rq,state,&baserules);
@@ -331,8 +361,8 @@ class Level{
           ·Don't move this check to before the action processing of the next round, as
            doing it this way also allows us to return the newest rules for display
         */
-        void tick(const PlayerAction& pa,rlqu_t* rq=nullptr){
-            clearAnimations();
+        str tick(const WorldAction& pa,rlqu_t* rq=nullptr){
+            clear_animations();
             size_t iter = 0u;
             bool madeProgress = true;
             bool dMadeProgress;
@@ -344,10 +374,8 @@ class Level{
             }
             rwis.flip(state);
             do{
-                dbgPrint("PR#"+std::to_string(pr));
                 dMadeProgress = madeProgress;
                 madeProgress = false;
-                dbgPrint("Action count "+std::to_string(state.acqu().size()));
                 for(auto& ac : state.acqu()){
                     rslt = ac->exec(rwis);
                     if(!rslt.success()){
@@ -365,19 +393,14 @@ class Level{
                     throw too_complex();
                 }
             }while(!state.acqu().empty()&&(madeProgress||dMadeProgress));
-            dbgPrint("Actions resolved. Updating & executing rules...");
             rwis.update_rules(baserules);
-            dbgPrint("Rules updated. Processing...");
             rwis.process_rules();
             rwis.flip(state);
-            dbgPrint("Rules processed. Executing...");
             rwis.execute_rules();
             rwis.flip(state);
-            dbgPrint("Final rule update...");
             rwis.update_rules(baserules);
             rwis.process_rules();
             rwis.flip(state);
-            dbgPrint("Invoking end-of-turn callback...");
             for(const auto& e : rwis.cobjmap()){
                 e.first->on_turn_end(e.first,rwis,pa);
             }
@@ -389,6 +412,7 @@ class Level{
             if(rq){
                 *rq = std::move(rwis.rulz);
             }
+            return std::move(rwis.get_notice());
         }
         void set_state(LevelState&& stt){
             animations.clear();
@@ -402,13 +426,13 @@ class Level{
                 }
             }
         }
-        glm::vec2 dimensions(float size) const{
+        glm::vec2 dimensions(const float size) const{
             return {float(w)*size,float(h)*size};
         }
         void add(const coords_t& c,const pBo& b){
             state.add(c,b);
         }
-        void render(const LevelRenderInfo& lri,float animate=0.0f) const{
+        void render(const LevelRenderInfo& lri,const float animate=0.0f) const{
             state.render(lri,animations);
             for(const auto& [k,v] : animations){
                 for(const auto& anim : v){
@@ -417,7 +441,7 @@ class Level{
             }
         }
 };
-void AniMove::draw(const pBo& obj,const LevelState& lg,const LevelRenderInfo& lri,float progress) const{
+void AniMove::draw(const pBo& obj,const LevelState& lg,const LevelRenderInfo& lri,const float progress) const{
     if(!lg.has_obj(obj)){
         return;
     }
@@ -435,7 +459,27 @@ class GameState{
         _won = complex = false;
     }
     public:
-        GameState(const levelsz_t& w,const levelsz_t& h) : lvl(w,h), past(), _won(false), complex(false){}
+        struct MetaLD{
+            str parent;
+            MetaLD(sv v) : parent(v){}
+        };
+    private:
+        MetaLD meta;
+    public:
+        GameState(const levelsz_t& w,const levelsz_t& h,const MetaLD& mt) : lvl(w,h), past(), _won(false), complex(false), meta(mt){}
+        GameState(const levelsz_t& w,const levelsz_t& h,MetaLD&& mt) : lvl(w,h), past(), _won(false), complex(false), meta(std::move(mt)){}
+        MetaLD& metadata(){
+            return meta;
+        }
+        const MetaLD& metadata() const{
+            return meta;
+        }
+        const board_t& board() const{
+            return lvl.board();
+        }
+        const objmap_t& objmap() const{
+            return lvl.posmap();
+        }
         void add(const coords_t& c,const pBo& bo){
             try{
                 lvl.add(c,bo);
@@ -447,7 +491,7 @@ class GameState{
         void base_rule(const pRule& pr){
             lvl.base_rule(pr);
         }
-        glm::vec2 dimensions(float scale) const{
+        glm::vec2 dimensions(const float scale) const{
             return lvl.dimensions(scale);
         }
         void undo(rlqu_t* rq=nullptr){
@@ -480,36 +524,37 @@ class GameState{
         bool done() const{
             return _won||complex;
         }
-        void beginAnimation(){
+        void begin_animation(){
             _animating = true;
             animate = 0.0f;
         }
-        void tickAnimation(float amount){
+        void tick_animation(const float amount){
             if(!_animating)return;
             animate += amount;
             if(animate>=1.0f){
-                stopAnimation();
+                stop_animation();
             }
         }
-        void stopAnimation(){
+        void stop_animation(){
             _animating = false;
             animate = 0.0f;
-            lvl.clearAnimations();
+            lvl.clear_animations();
         }
         bool animating() const{
             return _animating;
         }
-        void tick(const PlayerAction& pa,rlqu_t* rq=nullptr,bool history=true){
+        str tick(const WorldAction& pa,rlqu_t* rq=nullptr,bool history=true){
             if(history){
                 past.emplace_back(lvl.dup_state());
             }
             try{
-                lvl.tick(pa,rq);
+                return lvl.tick(pa,rq);
             }catch(too_complex&){
                 complex = true;
             }catch(level_win&){
                 _won = true;
             }
+            return u8""s;
         }
         void render(const LevelRenderInfo& lri) const{
             lvl.render(lri,animate);

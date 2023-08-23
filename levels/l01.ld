@@ -1,7 +1,8 @@
+map
 13 7
 - 0 0 > 11 cross
 - 10 1 v 2 cross
-- 8 3 > 5 cross
+- 7 3 > 6 cross
 12 4 cross
 7 5 cross
 - 9 5 > 4 cross

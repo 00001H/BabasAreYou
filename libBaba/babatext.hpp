@@ -14,7 +14,7 @@ class AnimationAtlas{
         return tex->pix2tc(x*spritedim,y*spritedim);
     }
     public:
-        AnimationAtlas(const std::string& fn,GLsizei SPRITE_DIM, size_t framecnt) :
+        AnimationAtlas(const str& fn,GLsizei SPRITE_DIM, size_t framecnt) :
         tex(pygame::loadTexture2D(fn.c_str())),
         spritedim(SPRITE_DIM),
         frames(framecnt),
@@ -55,15 +55,15 @@ constexpr float TEXT_X_CRAM = 0.12f;
 constexpr float TEXT_Y_CRAM = 0.00f;
 constexpr size_t SPRITE_DIM = 24u;
 constexpr float FSDIM = float(SPRITE_DIM);
-glm::vec2 babatext_info(const std::string& text, float size,std::vector<std::string>* lns=nullptr,
+glm::vec2 babatext_info(const sv text, float size,std::vector<str>* lns=nullptr,
 bool ignore_overfit=false,bool ignore_cram=false){
     float ycharsz = (ignore_cram?size*FSDIM:size*FSDIM*(1.0f-TEXT_Y_CRAM));
     float xcharsz = (ignore_cram?size*FSDIM:size*FSDIM*(1.0f-TEXT_X_CRAM));
-    std::string ln;
+    str ln;
     float x = 0.0f;
     float maxwd = 0.0f;
     float ht = 0.0f;
-    for(const char& c : text){
+    for(const char8_t& c : text){
         if(c=='\n'){
             ht += ycharsz;
             x = 0.0f;
@@ -95,12 +95,12 @@ namespace{
     std::unique_ptr<pygame::Framebuffer> ivfbo=nullptr;
     pygame::sTexture subtract_buf=nullptr;
 }
-void babatext(const std::string& text, pygame::Color color, size_t frame, pygame::Point pos, float size,
+void babatext(const sv text, pygame::Color color, size_t frame, pygame::Point pos, float size,
 bool horcntr=true, bool vercntr=false){
     const float SMFD = size*FSDIM;
     const float ycharsz = SMFD*(1.0f-TEXT_Y_CRAM);
     const float xcharsz = SMFD*(1.0f-TEXT_X_CRAM);
-    std::vector<std::string> lines;
+    std::vector<str> lines;
     float tpzy = babatext_info(text,size,&lines,true,true).y;
     float x;
     float y = 0.0f;
@@ -131,8 +131,8 @@ bool horcntr=true, bool vercntr=false){
         y += ycharsz;
     }
 }
-void read_atlmap(atlmap_t& amap,const std::string& fn){
-    std::string st = pygame::loadStringFile(fn);
+void read_atlmap(atlmap_t& amap,const sv fn){
+    str st = pygame::loadStringFile(fn);
     size_t id = 0u;
     for(const cppp::codepoint& c : cppp::codepoints_of(st)){
         if(c==' '){
@@ -148,24 +148,22 @@ void ld_babatex(){
     ivfbo->bind();
     pygame::Framebuffer::unbind();
     subtract_buf.reset(new pygame::Texture(nullptr,SUBRENDER_QUALITY,SUBRENDER_QUALITY));
-    assert(glIsFramebuffer(ivfbo->id()));
-    assert(glIsTexture(subtract_buf->id()));
     ivfbo->attach_texture(*subtract_buf);
     if(!ivfbo->is_complete()){
-        std::cerr << "Incomplete Fbuf:" << glCheckNamedFramebufferStatus(ivfbo->id(),GL_FRAMEBUFFER) << std::endl;
-        std::cerr << "Err:" << glGetError() << std::endl;
+        cppp::fcerr << u8"Incomplete Fbuf:"sv << glCheckNamedFramebufferStatus(ivfbo->id(),GL_FRAMEBUFFER) << std::endl;
+        cppp::fcerr << u8"Err:"sv << glGetError() << std::endl;
         pygame::quit();
         std::abort();
     }
     texture_shader_colored.program = pygame::loadprogram(
-        "rsrc/2d_textured_vertex.glsl",
-        "shaders/tsfc.glsl"
+        u8"rsrc/2d_textured_vertex.glsl"sv,
+        u8"shaders/tsfc.glsl"sv
     );
     texture_sub_colored.program = pygame::loadprogram(
-        "rsrc/2d_textured_vertex.glsl",
-        "shaders/tssubc.glsl"
+        u8"rsrc/2d_textured_vertex.glsl"sv,
+        u8"shaders/tssubc.glsl"sv
     );
-    letters.reset(new AnimationAtlas("sprites/atlas1.png",SPRITE_DIM,3u));
-    read_atlmap(text_amap,"sprites/atlas1.txt");
-    miscpic.reset(new AnimationAtlas("sprites/atlas2.png",SPRITE_DIM,3u));
+    letters.reset(new AnimationAtlas(u8"sprites/atlas1.png"s,SPRITE_DIM,3uz));
+    read_atlmap(text_amap,u8"sprites/atlas1.txt"sv);
+    miscpic.reset(new AnimationAtlas(u8"sprites/atlas2.png"s,SPRITE_DIM,3uz));
 }

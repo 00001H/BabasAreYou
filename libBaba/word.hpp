@@ -24,30 +24,30 @@ class SimpleNoun : public NounLike{
         }
 };
 class Suffix{
-    std::optional<std::string> ending;
+    std::optional<str> ending;
     public:
-        std::string operator()(const std::string& te,bool nl=false) const{
-            const char* const n = (nl?"\n":"");
+        str operator()(const sv te,bool nl=false) const{
+            str n = (nl?u8"\n"s:u8""s);
             if(ending.has_value()){
                 return te+n+ending.value();
             }
-            if(te.ends_with('s')/*glasses*/||te.ends_with("se")/*horses*/||te.ends_with('x')/*boxes*/||te.ends_with("ch")/*punches*/||te.ends_with("sh")/*dashes*/){
-                return te+n+"es";
+            if(te.ends_with(u8's')/*glasses*/||te.ends_with(u8"se")/*horses*/||te.ends_with(u8'x')/*boxes*/||te.ends_with(u8"se")/*punches*/||te.ends_with(u8"se"sv)/*dashes*/){
+                return te+n+u8"es"sv;
             }
             if(te.ends_with('y')){
-                return te.substr(0u,te.length()-1u)+n+"ies"/*candies*/;
+                return te.substr(0u,te.length()-1u)+n+u8"ies"sv/*candies*/;
             }
-            return te+n+'s';/*letters*/
+            return te+n+u8's';/*letters*/
         }
         Suffix() : ending(std::nullopt){}
-        Suffix(const std::string& suff) : ending(suff){}
+        Suffix(const sv suff) : ending(suff){}
 };
-void inline register_simple_noun(const std::string& object_name,const std::string& dname,const pygame::Color& color,const Countability& c){
-    rTWPacked<SimpleNoun>(object_name,ObjectRender::plain_text(dname,color),objtype(object_name),c);
+void inline register_simple_noun(sv object_name,const sv dname,const pygame::Color& color,const Countability& c){
+    rTWPacked<SimpleNoun>(object_name,unew<TextRender>(dname,color),objtype(object_name),c);
 }
-void inline register_simple_noun_and_plural(const std::string& object_name,const std::string& dname,const pygame::Color& color,bool suffix_newline=false,const Suffix& suffix={}){
-    rTWPacked<SimpleNoun>(object_name,ObjectRender::plain_text(dname,color),objtype(object_name),SINGULAR);
-    rTWPacked<SimpleNoun>(suffix(object_name),ObjectRender::plain_text(suffix(dname,suffix_newline),color),objtype(object_name),PLURAL);
+void inline register_simple_noun_and_plural(sv object_name,const sv dname,const pygame::Color& color,bool suffix_newline=false,const Suffix& suffix={}){
+    rTWPacked<SimpleNoun>(object_name,unew<TextRender>(dname,color),objtype(object_name),SINGULAR);
+    rTWPacked<SimpleNoun>(suffix(object_name),unew<TextRender>(suffix(dname,suffix_newline),color),objtype(object_name),PLURAL);
 }
 //WARNING: Non-owning. Please keep the referenced object alive.
 class SentenceScanner{

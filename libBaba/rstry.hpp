@@ -1,21 +1,21 @@
 #pragma once
 #include"idecl.hpp"
 namespace{
-    cppp::BiMap<std::string,const ObjectType*> object_types;
+    cppp::BiMap<str,const ObjectType*> object_types;
     cppp::BiMap<const ObjectType*,const Word*> words;
-    cppp::BiMap<std::string,const Property*> props;
+    cppp::BiMap<str,const Property*> props;
 }
-const Property* getprop(const std::string& st){
+const Property* getprop(sv st){
     return props.lookup(st);
 }
-inline const ObjectType* objtype(const std::string& st){
+inline const ObjectType* objtype(sv st){
     ITRY
     return object_types.lookup(st);
     ICATCH(std::out_of_range&)
-    load_logger.log("No such object: "+st,ERR);
+    load_logger.log(u8"No such object: "s+st,ERR);
     IPROPAGATE
 }
-inline const std::string& objname(const ObjectType* t){
+inline str objname(const ObjectType* t){
     return object_types.reversed_lookup(t);
 }
 inline bool hasword(const ObjectType* ky){
@@ -25,47 +25,47 @@ inline const Word* getword(const ObjectType* ky){
     ITRY
     return words.lookup(ky);
     ICATCH(std::out_of_range&)
-    load_logger.log("No such word: "+objname(ky),ERR);
+    load_logger.log(u8"No such word: "s+objname(ky),ERR);
     IPROPAGATE
 }
-inline const Word* getword(const std::string& st){
+inline const Word* getword(sv st){
     return getword(objtype(st));
 }
 inline const ObjectType* wordobj(const Word* wd){
     return words.reversed_lookup(wd);
 }
-inline const std::string& wordname(const Word* wd){
+inline str wordname(const Word* wd){
     return objname(words.reversed_lookup(wd));
 }
 template<typename T>
-inline const T* getwordsp(const std::string& ky){
+inline const T* getwordsp(sv ky){
     return &dynamic_cast<const T&>(*getword(ky));//throw error on failure.
 }
-inline const std::string& propname(const Property* pr){
+inline str propname(const Property* pr){
     return props.reversed_lookup(pr);
 }
 
 
-void inline register_object(const std::string& name,ObjectRender&& rd){
-    object_types.emplace(name,new const ObjectType(std::move(rd)));
+void inline register_object(sv name,ObjectRender&& rd){
+    object_types.emplace(str(name),new const ObjectType(std::move(rd)));
 }
 template<std::derived_from<Word> Wt,typename ...Args>
-void inline registerWord(const std::string& name,Args&& ...a){
-    words.emplace(objtype("#"+name),new const Wt(std::forward<Args>(a)...));
+void inline registerWord(sv name,Args&& ...a){
+    words.emplace(objtype(u8'#'+str(name)),new const Wt(std::forward<Args>(a)...));
 }
 //register text object and word packed
 template<std::derived_from<Word> Wt,typename ...Args>
-void inline rTWPacked(const std::string& name,ObjectRender&& rd,Args&& ...a){
-    register_object("#"+name,std::move(rd));
+void inline rTWPacked(sv name,ObjectRender&& rd,Args&& ...a){
+    register_object(u8'#'+str(name),std::move(rd));
     registerWord<Wt,Args...>(name,std::forward<Args>(a)...);
 }
 template<std::derived_from<Property> Pr,typename ...Args>
-void inline registerProperty(const std::string& name,Args&& ...a){
-    props.emplace(name,new const Pr(std::forward<Args>(a)...));
+void inline registerProperty(sv name,Args&& ...a){
+    props.emplace(str(name),new const Pr(std::forward<Args>(a)...));
 }
 //register text object and property packed
 template<std::derived_from<Property> Pr,typename ...Args>
-void inline rTPPacked(const std::string& name,ObjectRender&& rd,Args&& ...a){
+void inline rTPPacked(sv name,ObjectRender&& rd,Args&& ...a){
     registerProperty<Pr,Args...>(name,std::forward<Args>(a)...);
     rTWPacked<PropertyWord,const Property*>(name,std::move(rd),getprop(name));
 }
