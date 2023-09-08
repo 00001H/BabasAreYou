@@ -12,4 +12,7 @@ uniform vec4 cmul;
 
 void main(){
     fragcolor = texture(img,texcoords)*cmul;
+    if(fragcolor.a<0.01){
+        discard;
+    }
 }

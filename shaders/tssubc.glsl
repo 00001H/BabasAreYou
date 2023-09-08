@@ -16,6 +16,7 @@ uniform vec4 cmul;
 void main(){
     vec4 bg = texture(img,mix(lTop,rBtm,texcoords));
     vec4 neg = texture(sub,vec2(texcoords.x,1.0-texcoords.y));
-    if(neg.a>0)discard;
+    if(neg.a>0.01)discard;
     fragcolor = bg*cmul;
+    if(fragcolor.a<0.01)discard;
 }

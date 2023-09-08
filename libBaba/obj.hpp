@@ -1,24 +1,32 @@
 #pragma once
 #include"render.hpp"
 class ObjectType{
-    ObjectRender render;
+    pRender render;
     float z;
     friend class Word;
     public:
-        ObjectType(ObjectRender&& rndr,const float z=3.0f) : render(std::move(rndr)), z(z){}
+        ObjectType(pRender&& rndr,const float z=3.0f) : render(std::move(rndr)), z(z){}
         float zl() const{
             return z;
         }
-        void draw(pygame::Rect bbox, Direction di) const{
-            render.render(bbox,di);
+        size_t mfc() const{
+            return render->mfcount();
+        }
+        void draw(pygame::Rect bbox,ASInfo ai) const{
+            render->render(bbox,ai);
         }
 };
-class BabaObject{
+class Object{
     const ObjectType* ot;
     Direction di;
     str _special;
     std::unordered_set<const Property*> props;
+    size_t mvfrm;
     public:
+        void next_movement_frame(){
+            ++mvfrm;
+            mvfrm %= ot->mfc();
+        }
         sv special() const{
             return _special;
         }
@@ -28,8 +36,11 @@ class BabaObject{
         void reset_props(){
             props.clear();
         }
-        const Direction& getDir() const{
+        const Direction& direction() const{
             return di;
+        }
+        void rotate_to_face(Direction nd){
+            di = std::move(nd);
         }
         bool has_prop(const Property* prop){
             return props.contains(prop);
@@ -47,63 +58,58 @@ class BabaObject{
         void add_prop(const Property* prop){
             props.insert(prop);
         }
-        ActionResult moved(const pBo& self,RWIState& ls, Direction dir) const{
+        ActionResult moved(RWIState& ls, Direction dir){
             ActionResult rslt = ActionResult::NOTHING_CHECKED;
             for(const auto& prop : props){
-                rslt &= prop->on_moved(self,ls,dir);
+                rslt &= prop->on_moved(this,ls,dir);
             }
             return rslt;
         }
-        ActionResult pushed(const pBo& self,RWIState& ls, Direction dir,const pBo& src) const{
+        ActionResult pushed(RWIState& ls, Direction dir,Object* src){
             ActionResult rslt = ActionResult::NOTHING_CHECKED;
             for(const auto& prop : props){
-                rslt &= prop->on_pushed(self,ls,dir,src);
+                rslt &= prop->on_pushed(this,ls,dir,src);
             }
             return rslt;
         }
-        ActionResult overlapped(const pBo& self,RWIState& ls,const pBo& src) const{
+        ActionResult overlapped(RWIState& ls,Object* src){
             ActionResult rslt = ActionResult::NOTHING_CHECKED;
             for(const auto& prop : props){
-                rslt &= prop->overlapped(self,ls,src);
+                rslt &= prop->overlapped(this,ls,src);
             }
             return rslt;
         }
-        void on_turn_start(const pBo& self,RWIState& ls,const WorldAction& pa) const{
+        void on_turn_start(RWIState& ls,const WorldAction& pa){
             for(const auto& prop : props){
-                prop->on_turn_start(self,ls,pa);
+                prop->on_turn_start(this,ls,pa);
             }
         }
-        void on_turn_end(const pBo& self,const RWIState& ls,const WorldAction& pa) const{
+        void on_turn_end(const RWIState& ls,const WorldAction& pa) const{
             for(const auto& prop : props){
-                prop->on_turn_end(self,ls,pa);
+                prop->on_turn_end(this,ls,pa);
             }
         }
         const ObjectType* get_type() const{
             return ot;
         }
-        BabaObject(const ObjectType* t,const Direction d=Direction::UP,const sv spcl=u8""sv) : ot(t), di(d), _special(spcl){}
+        Object(const ObjectType* t,const Direction d=Direction::UP,const sv spcl=u8""sv) : 
+        ot(t), di(d), _special(spcl), mvfrm(0uz){}
         void draw(pygame::Rect bbox) const{
-            ot->draw(bbox,di);
+            ot->draw(bbox,ASInfo{.mfr=mvfrm,.d=di});
             for(const auto& prop : props){
                 prop->draw_vfx(bbox,*this);
             }
         }
 };
-pBo npBo(const ObjectType* ot,const Direction d=Direction::UP,const sv spcl=u8""sv){
-    return pBo(new BabaObject(ot,d,spcl));
-}
 inline const ObjectType* objtype(sv);
-pBo npBo(sv objn,const Direction d=Direction::UP,const sv spcl=u8""sv){
-    return pBo(new BabaObject(objtype(objn),d,spcl));
-}
-template<cppp::aret_fun<const pBo&> fn>
+template<cppp::aret_fun<Object*> fn>
 void NounLike::allAccepts(const objmap_t& mp,const fn& f) const{
     if(countability()==SINGULAR){
-        pBo obj = nullptr;
+        Object* obj = nullptr;
         for(const auto& [k,v] : mp){
             if(!accepts(k->get_type()))continue;
             if(obj)return;//multiple objects: none match
-            obj = k;
+            obj = k.get();
         }
         if(obj){
             f(obj);
@@ -111,7 +117,7 @@ void NounLike::allAccepts(const objmap_t& mp,const fn& f) const{
     }else{
         for(const auto& [k,v] : mp){
             if(accepts(k->get_type())){
-                f(k);
+                f(k.get());
             }
         }
     }

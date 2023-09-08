@@ -1,9 +1,10 @@
 #pragma once
 #include"tdefs.hpp"
 class ObjectType;
-class BabaObject;
-using pBo = std::shared_ptr<BabaObject>;
-using board_t = std::unordered_map<coords_t,std::unordered_set<pBo>>;
+class Object;
+using sBo = std::unique_ptr<Object>;
+using board_t = cppp::dfheq_umap<coords_t,cppp::dfheq_uset<Object*>>;
+using objmap_t = cppp::dfheq_umap<sBo,coords_t>;
 class Action;
 using pAc = std::shared_ptr<Action>;
 using acqu_t = std::vector<pAc>;
@@ -11,11 +12,11 @@ using acqu_t = std::vector<pAc>;
 class Direction;
 str debug(Direction);
 str debug(const coords_t& c){
-    return cppp::to_u8string(c.x)+u8'@'+cppp::to_u8string(c.y);
+    return u8'('+cppp::to_u8string(c.x)+u8','+cppp::to_u8string(c.y)+u8')';
 }
 class Animation;
 using pAnimation = std::unique_ptr<Animation>;
-using anqu_t = std::unordered_map<pBo,std::vector<pAnimation>>;
+using anqu_t = cppp::dfheq_umap<const Object*,std::vector<pAnimation>>;
 class WorldAction;
 class Level;
 class LevelState;
@@ -29,7 +30,7 @@ class Verb;
 const NounLike* nextNoun(SentenceScanner&);
 const PropertyWord* nextProperty(SentenceScanner&);
 class Rule;
-using pRule = std::shared_ptr<Rule>;
+using pRule = cppp::better_shared_ptr<Rule>;
 using rlqu_t = std::vector<pRule>;
 class Property;
 /*
@@ -112,4 +113,3 @@ class LevelRenderInfo{
             return ltop+glm::vec2(tilesz*float(c.x),tilesz*(c.y));
         }
 };
-using objmap_t = std::unordered_map<pBo,coords_t>;

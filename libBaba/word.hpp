@@ -19,7 +19,7 @@ class SimpleNoun : public NounLike{
         bool isSentenceStart() const override{
             return true;
         }
-        const ObjectType* transformTarget(const BabaObject&) const override{
+        const ObjectType* transformTarget(const Object&) const override{
             return obj;
         }
 };
@@ -43,11 +43,11 @@ class Suffix{
         Suffix(const sv suff) : ending(suff){}
 };
 void inline register_simple_noun(sv object_name,const sv dname,const pygame::Color& color,const Countability& c){
-    rTWPacked<SimpleNoun>(object_name,unew<TextRender>(dname,color),objtype(object_name),c);
+    rTWPacked<SimpleNoun>(object_name,new TextRender(dname,color),objtype(object_name),c);
 }
 void inline register_simple_noun_and_plural(sv object_name,const sv dname,const pygame::Color& color,bool suffix_newline=false,const Suffix& suffix={}){
-    rTWPacked<SimpleNoun>(object_name,unew<TextRender>(dname,color),objtype(object_name),SINGULAR);
-    rTWPacked<SimpleNoun>(suffix(object_name),unew<TextRender>(suffix(dname,suffix_newline),color),objtype(object_name),PLURAL);
+    rTWPacked<SimpleNoun>(object_name,new TextRender(dname,color),objtype(object_name),SINGULAR);
+    rTWPacked<SimpleNoun>(suffix(object_name),new TextRender(suffix(dname,suffix_newline),color),objtype(object_name),PLURAL);
 }
 //WARNING: Non-owning. Please keep the referenced object alive.
 class SentenceScanner{

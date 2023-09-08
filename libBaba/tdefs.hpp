@@ -24,6 +24,7 @@ using namespace std::literals;
 using cppp::logging::ERR;
 using cppp::logging::WARN;
 using cppp::unew;
+using cppp::Lazy;
 using levelsz_t = uint32_t;
 using pos_t = int32_t;
 using str = std::u8string;

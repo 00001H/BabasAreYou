@@ -15,7 +15,7 @@ inline const ObjectType* objtype(sv st){
     load_logger.log(u8"No such object: "s+st,ERR);
     IPROPAGATE
 }
-inline str objname(const ObjectType* t){
+inline const str& objname(const ObjectType* t){
     return object_types.reversed_lookup(t);
 }
 inline bool hasword(const ObjectType* ky){
@@ -46,8 +46,8 @@ inline str propname(const Property* pr){
 }
 
 
-void inline register_object(sv name,ObjectRender&& rd){
-    object_types.emplace(str(name),new const ObjectType(std::move(rd)));
+void inline register_object(sv name,Render*&& rd,float zl=3.0f){
+    object_types.emplace(str(name),new const ObjectType(pRender(rd),zl));
 }
 template<std::derived_from<Word> Wt,typename ...Args>
 void inline registerWord(sv name,Args&& ...a){
@@ -55,7 +55,7 @@ void inline registerWord(sv name,Args&& ...a){
 }
 //register text object and word packed
 template<std::derived_from<Word> Wt,typename ...Args>
-void inline rTWPacked(sv name,ObjectRender&& rd,Args&& ...a){
+void inline rTWPacked(sv name,Render*&& rd,Args&& ...a){
     register_object(u8'#'+str(name),std::move(rd));
     registerWord<Wt,Args...>(name,std::forward<Args>(a)...);
 }
@@ -65,7 +65,7 @@ void inline registerProperty(sv name,Args&& ...a){
 }
 //register text object and property packed
 template<std::derived_from<Property> Pr,typename ...Args>
-void inline rTPPacked(sv name,ObjectRender&& rd,Args&& ...a){
+void inline rTPPacked(sv name,Render*&& rd,Args&& ...a){
     registerProperty<Pr,Args...>(name,std::forward<Args>(a)...);
     rTWPacked<PropertyWord,const Property*>(name,std::move(rd),getprop(name));
 }

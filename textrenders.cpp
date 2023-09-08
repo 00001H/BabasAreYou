@@ -24,7 +24,7 @@ int main(){
     wn.onresize(aspectie_resz);
     pygame::setup_template_0();
     glClearColor(0.0f,0.0f,0.0f,1.0f);
-    ld_babatex();
+    ld_render();
     glfwSetCharCallback(wn.glfw_handle(),onchar);
     glm::vec2 size;
     while(!wn.should_close()){

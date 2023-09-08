@@ -60,7 +60,7 @@ GameState load_level(const sv code){
     Direction dbuf{Direction::UP};
     size_t lnno=1uz;
     str sbuf;
-    pBo last_added = nullptr;
+    Object* last_added = nullptr;
     for(auto li=lines.cbegin()+2uz;li!=lines.cend();++li){
         ++lnno;
         instr = cppp::split(*li,u8' ');
@@ -75,7 +75,7 @@ GameState load_level(const sv code){
             levelsz_t lth = ugetnum(*++iit,lnno);
             ++iit;
             for(levelsz_t i=0u;i<lth;++i){
-                gs.add(posbuf,npBo(*iit,dbuf));
+                gs.add(posbuf,new Object(objtype(*iit),dbuf));
                 posbuf += dbuf.off();
             }
         }else{
@@ -107,7 +107,9 @@ GameState load_level(const sv code){
                     last_added->setspecial(sv(sbuf).substr(1uz,sbuf.size()-2uz));
                     last_added = nullptr;
                 }else{
-                    gs.add(posbuf,last_added = npBo(sbuf,dbuf));
+                    last_added = new Object(objtype(sbuf),dbuf);
+                    using pO = Object*;
+                    gs.add(posbuf,pO(last_added));
                     posbuf += dbuf.off();
                 }
             }

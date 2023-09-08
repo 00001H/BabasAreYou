@@ -12,7 +12,7 @@ class TextifyNoun : public NounLike{
         bool isSentenceStart() const override{
             return true;
         }
-        const ObjectType* transformTarget(const BabaObject&) const override{
+        const ObjectType* transformTarget(const Object&) const override{
             return wordobj(this);
         }
 };
@@ -25,7 +25,7 @@ class Transform : public Rule{
         }
         Transform(const NounLike* x, const NounLike* y) : src(x), dst(y){}
         void exec(RWIState& lvl) const override{
-            src->allAccepts(lvl.cobjmap(),[&lvl,this](const pBo& obj){
+            src->allAccepts(lvl.cobjmap(),[&lvl,this](const Object* obj){
                 lvl.transform_object(obj,dst->transformTarget(*obj));
             });
         }
@@ -46,7 +46,7 @@ class ApplyProperty : public Rule{
             return wordname(src)+u8' '+BV_NAME<stz>+u8' '+wordname(dst);
         }
         void process(RWIState& lvl) const override{
-            src->allAccepts(lvl.cobjmap(),[&lvl,this](const pBo& obj){
+            src->allAccepts(lvl.cobjmap(),[&lvl,this](const Object* obj){
                 lvl.apply_property(obj,dst->prop());
             });
         }

@@ -17,9 +17,9 @@ class NounLike : public Word{
             return true;
         }
         virtual Countability countability() const = 0;
-        template<cppp::aret_fun<const pBo&> fn>
+        template<cppp::aret_fun<Object*> fn>
         void allAccepts(const objmap_t&,const fn&) const;
-        virtual const ObjectType* transformTarget(const BabaObject&) const = 0;
+        virtual const ObjectType* transformTarget(const Object&) const = 0;
 };
 class Verb : public Word{
     public:
@@ -53,29 +53,29 @@ class Rule{
 };
 class Property{
     public:
-        virtual ActionResult on_moved([[maybe_unused]] const pBo& dst,RWIState&,Direction) const{
+        virtual ActionResult on_moved([[maybe_unused]] Object* dst,RWIState&,Direction) const{
             return ActionResult::NOTHING_CHECKED;
         }
-        virtual ActionResult on_pushed([[maybe_unused]] const pBo& dst,RWIState&,Direction,[[maybe_unused]] const pBo& src) const{
+        virtual ActionResult on_pushed([[maybe_unused]] Object* dst,RWIState&,Direction,[[maybe_unused]] Object* src) const{
             return ActionResult::NOTHING_CHECKED;
         }
-        virtual ActionResult overlapped([[maybe_unused]] const pBo& dst,RWIState&,[[maybe_unused]] const pBo& src) const{
+        virtual ActionResult overlapped([[maybe_unused]] Object* dst,RWIState&,[[maybe_unused]] Object* src) const{
             return ActionResult::NOTHING_CHECKED;
         }
-        virtual void on_turn_start(const pBo&,RWIState&,const WorldAction&) const{}
-        virtual void on_turn_end(const pBo&,const RWIState&,const WorldAction&) const{}
-        virtual void draw_vfx(const pygame::Rect&,const BabaObject&) const{}
+        virtual void on_turn_start(Object*,RWIState&,const WorldAction&) const{}
+        virtual void on_turn_end(const Object*,const RWIState&,const WorldAction&) const{}
+        virtual void draw_vfx(const pygame::Rect&,const Object&) const{}
         virtual ~Property(){};
 };
 class Action{
     public:
         virtual ActionResult exec(RWIState&) const = 0;
-        virtual void fixObjects(const std::unordered_map<pBo,pBo>&){}
+        virtual void fixObjects(const std::unordered_map<const Object*,Object*>&){}
         virtual ~Action(){}
 };
 class Animation{
     public:
-        virtual void draw(const pBo&,const LevelState&,const LevelRenderInfo&,const float progress) const = 0;
-        virtual void fixObjects(const std::unordered_map<pBo,pBo>&){}
+        virtual void draw(const Object*,const LevelState&,const LevelRenderInfo&,const float progress) const = 0;
+        virtual void fixObjects(const std::unordered_map<const Object*,Object*>&){}
         virtual ~Animation(){}
 };

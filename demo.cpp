@@ -30,6 +30,7 @@ class InputHandler{
                 wa_cd = input_interval;
                 last = aia;
                 gs.stop_animation();
+                std::cout << "#@$" << std::endl;
                 notice = gs.tick(aia.world_action());
                 gs.begin_animation();
             }else{
@@ -65,7 +66,7 @@ void update_level(GameState& level,const LevelRenderInfo& lri){
     }
 }
 class quit_game : public std::exception{};
-str run_level(pygame::display::Window& wn,GameState& level){
+str run_level(pygame::display::Window& wn,GameState& level,sv initial_notice){
     try{
         const float scale = fit(level.dimensions(1.0f),SCRDIMS);
         const LevelRenderInfo lri{center(level.dimensions(scale),SCRDIMS),scale};
@@ -73,7 +74,7 @@ str run_level(pygame::display::Window& wn,GameState& level){
         wn.configure_repeat(13u,8u);
         InputHandler ih{level};
         float win_timer = 0.0f;
-        str notice;
+        str notice{initial_notice};
         while(!wn.should_close()){
             glClearColor(0.0f,0.0f,0.0f,1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -84,6 +85,8 @@ str run_level(pygame::display::Window& wn,GameState& level){
                     const auto& kevt = std::any_cast<KeyEvent>(e.value);
                     if(kevt.is_key(GLFW_KEY_F11)){
                         wn.toggleFullscreen();
+                    }else if(kevt.is_key(GLFW_KEY_GRAVE_ACCENT)){
+                        level.ddumpobj();
                     }
                 }
             }
@@ -105,7 +108,7 @@ str run_level(pygame::display::Window& wn,GameState& level){
                 ih.fire(WorldAction(WorldAction::IDLE),notice);
             }
             ih.tick(static_cast<float>(clk.last_frame_time()),notice);
-            level.tick_animation(clk.last_frame_time()/input_interval*1.67f);
+            level.tick_animation(clk.last_frame_time()/input_interval*1.6f);
             update_level(level,lri);
             if(level.won()){
                 win_timer += clk.last_frame_time();
@@ -133,7 +136,7 @@ int main(){
     wn.set_as_OpenGL_target();
     wn.onresize(default_resize_fun);
     pygame::setup_template_0();
-    ld_babatex();
+    ld_render();
     load();
     LevelSet wrld{u8"levels"s};
     str lvl{u8"l01"sv};
@@ -143,11 +146,9 @@ int main(){
             level.base_rule(parse_sentence({getword(u8"#text"s),getword(u8"#is"s),getword(u8"#push"s)}));
             level.base_rule(parse_sentence({getword(u8"#cursors"s),getword(u8"#are"s),getword(u8"#select"s)}));
             level.base_rule(parse_sentence({getword(u8"#levels"s),getword(u8"#are"s),getword(u8"#enterable"s)}));
-            level.tick(WorldAction::IDLE,nullptr,false);
-            lvl = run_level(wn,level);
+            lvl = run_level(wn,level,level.tick(WorldAction::IDLE,nullptr,false));
             if(lvl==u8"?parent"sv){
                 lvl = level.metadata().parent;
-                cppp::fcout << u8"Switching to: "sv << lvl << std::endl;
             }
         }
     }catch(quit_game&){}

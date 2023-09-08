@@ -9,25 +9,40 @@ class LevelState{
         board_t board;
         acqu_t actions;
         objmap_t objmap;
-        void delFromMap(const pBo& bo){
+        Object* del_from_board(const Object* bo){
             coords_t loc = where(bo);
-            board[loc].erase(bo);
+            auto it = board.at(loc).find(bo);
+            Object* p = *it;
+            board.at(loc).erase(it);
             if(board.at(loc).empty()){
                 board.erase(loc);
             }
+            return p;
         }
     public:
-        bool has_obj(const pBo& o) const{
-            return objmap.contains(o);
+        void ddumpobj(){
+            for(const auto& [o,p] : objmap){
+                cppp::fcout << objname(o->get_type()) << u8' ' << debug(o->direction()) << u8" at "sv << debug(p) << std::endl;
+            }
+        }
+        bool has_obj(const Object* o) const{
+            return objmap.find(o)!=objmap.cend();
         }
         void clear_acqu(){
             actions.clear();
         }
         LevelState() : board(), actions(), objmap(){}
+        LevelState(const LevelState&) = delete;
+        LevelState(LevelState&&) = default;
+        LevelState& operator=(const LevelState&) = delete;
+        LevelState& operator=(LevelState&&) = default;
         void clear(){
             board.clear();
             actions.clear();
             objmap.clear();
+        }
+        acqu_t& acqu(){
+            return actions;
         }
         const acqu_t& acqu() const{
             return actions;
@@ -44,7 +59,7 @@ class LevelState{
         const objmap_t& cobjmap() const{
             return objmap;
         }
-        void add(const coords_t& c,const pBo& bo){
+        void add(const coords_t& c,Object*&& bo){
             if(objmap.size()>=OBJECT_LIMIT){
                 objmap.clear();
                 board.clear();
@@ -53,49 +68,35 @@ class LevelState{
             board[c].emplace(bo);
             objmap.emplace(bo,c);
         }
-        coords_t where(const pBo& bo) const{
-            return objmap.at(bo);
+        coords_t where(const Object* bo) const{
+            return objmap.find(bo)->second;
         }
-        const board_t::mapped_type overlapping(const pBo& obj) const{
+        const board_t::mapped_type overlapping(const Object* obj) const{
             return board.at(where(obj));
         }
-        void remove(const pBo& bo){
-            if(!objmap.contains(bo))return;
-            delFromMap(bo);
-            objmap.erase(bo);
+        void remove(const Object* bo){
+            if(!bo)return;
+            auto it = objmap.find(bo);
+            if(it==objmap.cend())return;
+            del_from_board(bo);
+            objmap.erase(it);
         }
-        void move(const pBo& bo,coords_t newpos){
+        void move(const Object* bo,coords_t newpos){
+            if(!bo)return;
             if(!objmap.contains(bo))return;
-            delFromMap(bo);
-            board[newpos].emplace(bo);
-            objmap.at(bo) = newpos;
+            board[newpos].emplace(del_from_board(bo));
+            objmap.find(bo)->second = newpos;
         }
         //Note: Actions are NOT copied!(intentional)
-        LevelState deep_copy(std::unordered_map<pBo,pBo>* r=nullptr) const{
+        LevelState deep_copy(std::unordered_map<const Object*,Object*>* r=nullptr) const{
             LevelState nw;
-            pBo p=nullptr;
-            std::unique_ptr<std::unordered_map<pBo,pBo>> pp=nullptr;
-            if(r==nullptr){
-                pp.reset(new std::unordered_map<pBo,pBo>());
-                r = pp.get();
-            }
-            for(const auto& elem : board){
-                nw.board.try_emplace(elem.first);
-                for(const auto& item : elem.second){
-                    p.reset(new BabaObject(*item));
-                    r->emplace(item,p);
-                    nw.board.at(elem.first).emplace(p);
-                    nw.objmap.emplace(p,elem.first);
-                }
+            Object* p=nullptr;
+            for(const auto& [o,c] : objmap){
+                p = nw.objmap.emplace(new Object(*o),c).first->first.get();
+                nw.board[c].emplace(p);
+                if(r)r->emplace(o.get(),p);
             }
             return nw;
-        }
-        void render(const LevelRenderInfo& lri) const{
-            for(const auto& elem : cboard()){
-                for(const auto& obj : elem.second){
-                    obj->draw({lri.loc(elem.first),lri.dims()});
-                }
-            }
         }
         void render(const LevelRenderInfo& lri,const anqu_t& skip_animated) const{
             for(const auto& pbj : skip_animated){
@@ -103,11 +104,20 @@ class LevelState{
                     cppp::fcout << u8"WARN: Stray animation source"sv << std::endl;
                 }
             }
+            using pcm = std::pair<coords_t,const Object*>;
+            using dwve = std::pair<float,pcm>;
+            std::vector<dwve> dw;
             for(const auto& [loc,contents] : cboard()){
                 for(const auto& obj : contents){
-                    if(skip_animated.contains(obj))continue;
-                    obj->draw({lri.loc(loc),lri.dims()});
+                    if(skip_animated.find(obj)!=skip_animated.cend())continue;
+                    dw.emplace_back(obj->get_type()->zl(),pcm(loc,obj));
                 }
+            }
+            std::sort(dw.begin(),dw.end(),[](const dwve& a,const dwve& b){
+                return a.first<b.first;
+            });
+            for(const auto& e : dw){
+                e.second.second->draw({lri.loc(e.second.first),lri.dims()});
             }
         }
 };
@@ -168,7 +178,7 @@ void find_rules(rlqu_t& rulz,const LevelState& ls,const rlqu_t* baserules=nullpt
     }
 }
 class RWIState{
-    std::unordered_map<pBo,pBo> fix;
+    std::unordered_map<const Object*,Object*> fix;
     const LevelState* read;
     LevelState write;
     rlqu_t rulz;
@@ -176,11 +186,11 @@ class RWIState{
     LevelState done_state(){
         return std::move(write);
     }
-    void mvInto(LevelState& buf) const{
+    void mvInto(LevelState& buf){
         buf = std::move(write);
     
     }
-    std::vector<std::pair<pBo,pAnimation>> anim;
+    std::vector<std::pair<const Object*,pAnimation>> anim;
 /*
 Mutability of `notice`: What does `const RWIState` really mean?
 Currently, `Property::on_turn_end` takes a `const RWIState&`. This is
@@ -203,6 +213,9 @@ that you should not change it(except for adding notices) in that method.
         void add_notice(sv ntc) const{
             notice += u8"\n"sv+ntc;
         }
+        Object* writestate(const Object* r) const{
+            return fix.at(r);
+        }
         str& get_notice() const{
             return notice;
         }
@@ -210,17 +223,19 @@ that you should not change it(except for adding notices) in that method.
             write.add_action(ac);
             write.acqu().back()->fixObjects(fix);
         }
-        void add_animation(const pBo& bo,pAnimation&& pa){
-            anim.emplace_back(fix.at(bo),std::move(pa));
+        void add_animation(const Object* bo,pAnimation&& pa){
+            Object* f = fix.at(bo);
+            if(!f)return;
+            anim.emplace_back(f,std::move(pa));
             anim.back().second->fixObjects(fix);
         }
-        ActionResult test_nudge(const Direction ndg,const pBo& obj){
-            ActionResult mr = obj->moved(obj,*this,ndg);
+        ActionResult test_nudge(const Direction ndg,Object* obj){
+            ActionResult mr = obj->moved(*this,ndg);
             if(mr.success()){
-                coords_t dest = cobjmap().at(obj)+ndg.off();
+                coords_t dest = cobjmap().find(obj)->second+ndg.off();
                 if(cboard().contains(dest)){
                     for(const auto& mobj : cboard().at(dest)){
-                        mr &= mobj->pushed(mobj,*this,ndg,obj);
+                        mr &= mobj->pushed(*this,ndg,obj);
                         //do NOT break until all processing is done for this space
                     }
                 }
@@ -232,10 +247,10 @@ that you should not change it(except for adding notices) in that method.
             read = &buf;
             fix.clear();
             write = read->deep_copy(&fix);
-            std::vector<std::pair<pBo,pAnimation>> nanq;
+            std::vector<std::pair<const Object*,pAnimation>> nanq;
             for(auto& a : anim){
                 if(read->cobjmap().contains(a.first)){
-                    a.first = fix.at(a.first);
+                    if(!(a.first = fix.at(a.first)))continue;
                     a.second->fixObjects(fix);
                     nanq.emplace_back(std::move(a));
                 }
@@ -251,7 +266,7 @@ that you should not change it(except for adding notices) in that method.
         }
         void process_rules(){
             for(const auto& e : cobjmap()){
-                fix.at(e.first)->reset_props();
+                if(Object* f=fix.at(e.first.get()))f->reset_props();
             }
             for(auto& rl : rulz){
                 rl->process(*this);
@@ -262,14 +277,14 @@ that you should not change it(except for adding notices) in that method.
                 rl->exec(*this);
             }
         }
-        void apply_property(const pBo& src,const Property* pp){
-            fix.at(src)->add_prop(pp);
+        void apply_property(const Object* src,const Property* pp){
+            if(Object* d=fix.at(src))d->add_prop(pp);
         }
-        void transform_object(const pBo& obj,const ObjectType* dst){
+        void transform_object(const Object* obj,const ObjectType* dst){
             if(read->cobjmap().contains(obj)){
-                assert(fix.contains(obj));
                 write.remove(fix.at(obj));
-                write.add(read->cobjmap().at(obj),npBo(dst,obj->getDir()));
+                fix.at(obj) = nullptr;
+                write.add(read->cobjmap().find(obj)->second,new Object(dst,obj->direction(),obj->special()));
             }
         }
         size_t getcount() const{
@@ -278,33 +293,33 @@ that you should not change it(except for adding notices) in that method.
         const board_t& cboard() const{
             return read->cboard();
         }
-        const board_t::mapped_type overlapping(const pBo& obj) const{
+        const board_t::mapped_type overlapping(const Object* obj) const{
             return read->overlapping(obj);
         }
         const objmap_t& cobjmap() const{
             return read->cobjmap();
         }
-        coords_t where(const pBo& bo) const{
+        coords_t where(const Object* bo) const{
             return read->where(bo);
         }
-        void add(const coords_t& c,const pBo& b){
-            write.add(c,b);
+        void add(const coords_t& c,Object*&& b){
+            write.add(c,std::move(b));
         }
-        void remove(const pBo& bo){
+        void remove(const Object* bo){
             if(!fix.contains(bo)){
                 cppp::fcerr << u8"Warning: remove() argument not in transformation list"sv << std::endl;
                 return;
             }
             write.remove(fix.at(bo));
         }
-        ActionResult move(const pBo& bo,coords_t newpos){
+        ActionResult move(Object* bo,coords_t newpos){
             if(!fix.contains(bo)){
                 throw cppp::u8_logic_error(u8"Warning: move() argument not in fix list"sv);
             }
             if(cboard().contains(newpos)){
                 ActionResult rslt = ActionResult::NOTHING_CHECKED;
-                for(const pBo& obj : cboard().at(newpos)){
-                    rslt &= obj->overlapped(obj,*this,bo);
+                for(Object* const& obj : cboard().at(newpos)){
+                    rslt &= obj->overlapped(*this,bo);
                 }
                 if(!rslt.success()){
                     return rslt;
@@ -322,6 +337,15 @@ class Level{
         rlqu_t baserules;
         anqu_t animations;
     public:
+        void ddumpobj(){
+            cppp::fcout << u8"--Level dump("sv << w << u8'x' << h << u8"):\n~  Objdump:\n"sv;
+            state.ddumpobj();
+            cppp::fcout << u8"~  Base rules:\n"sv;
+            for(const auto& e : baserules){
+                cppp::fcout << e->stringify() << u8'\n';
+            }
+            cppp::fcout << u8"--\n"sv;
+        }
         const board_t& board() const{
             return state.cboard();
         }
@@ -331,7 +355,7 @@ class Level{
         void clear_animations(){
             animations.clear();
         }
-        bool has_obj(const pBo& o) const{
+        bool has_obj(const Object* o) const{
             return state.has_obj(o);
         }
         void clear(){
@@ -370,7 +394,7 @@ class Level{
             size_t pr=0u;
             ActionResult rslt;
             for(const auto& e : rwis.cobjmap()){
-                e.first->on_turn_start(e.first,rwis,pa);
+                e.first->on_turn_start(rwis,pa);
             }
             rwis.flip(state);
             do{
@@ -402,7 +426,7 @@ class Level{
             rwis.process_rules();
             rwis.flip(state);
             for(const auto& e : rwis.cobjmap()){
-                e.first->on_turn_end(e.first,rwis,pa);
+                e.first->on_turn_end(rwis,pa);
             }
             for(auto& pa : rwis.anim){
                 animations[pa.first].emplace_back(std::move(pa.second));
@@ -418,7 +442,7 @@ class Level{
             animations.clear();
             state = std::move(stt);
         }
-        template<cppp::function_type<void,const pBo&> fun>
+        template<cppp::function_type<void,Object*> fun>
         void for_each_object(fun each){
             for(auto& elem : board()){
                 for(auto& obj : elem.second){
@@ -429,8 +453,8 @@ class Level{
         glm::vec2 dimensions(const float size) const{
             return {float(w)*size,float(h)*size};
         }
-        void add(const coords_t& c,const pBo& b){
-            state.add(c,b);
+        void add(const coords_t& c,Object*&& b){
+            state.add(c,std::move(b));
         }
         void render(const LevelRenderInfo& lri,const float animate=0.0f) const{
             state.render(lri,animations);
@@ -441,7 +465,7 @@ class Level{
             }
         }
 };
-void AniMove::draw(const pBo& obj,const LevelState& lg,const LevelRenderInfo& lri,const float progress) const{
+void AniMove::draw(const Object* obj,const LevelState& lg,const LevelRenderInfo& lri,const float progress) const{
     if(!lg.has_obj(obj)){
         return;
     }
@@ -480,13 +504,16 @@ class GameState{
         const objmap_t& objmap() const{
             return lvl.posmap();
         }
-        void add(const coords_t& c,const pBo& bo){
+        void add(const coords_t& c,Object*&& bo){
             try{
-                lvl.add(c,bo);
+                lvl.add(c,std::move(bo));
             }catch(too_complex&){
                 lvl.clear();
                 complex = true;
             }
+        }
+        void ddumpobj(){
+            lvl.ddumpobj();
         }
         void base_rule(const pRule& pr){
             lvl.base_rule(pr);
