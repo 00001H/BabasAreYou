@@ -30,7 +30,6 @@ class InputHandler{
                 wa_cd = input_interval;
                 last = aia;
                 gs.stop_animation();
-                std::cout << "#@$" << std::endl;
                 notice = gs.tick(aia.world_action());
                 gs.begin_animation();
             }else{
