@@ -98,7 +98,7 @@ class LevelState{
             }
             return nw;
         }
-        void render(const LevelRenderInfo& lri,const anqu_t& skip_animated) const{
+        void render(const LevelRenderInfo& lri,const anqu_t& skip_animated,float tra) const{
             for(const auto& pbj : skip_animated){
                 if(!cobjmap().contains(pbj.first)){
                     cppp::fcout << u8"WARN: Stray animation source"sv << std::endl;
@@ -117,7 +117,7 @@ class LevelState{
                 return a.first<b.first;
             });
             for(const auto& e : dw){
-                e.second.second->draw({lri.loc(e.second.first),lri.dims()});
+                e.second.second->draw({lri.loc(e.second.first),lri.dims()},tra);
             }
         }
 };
@@ -456,8 +456,8 @@ class Level{
         void add(const coords_t& c,Object*&& b){
             state.add(c,std::move(b));
         }
-        void render(const LevelRenderInfo& lri,const float animate=0.0f) const{
-            state.render(lri,animations);
+        void render(const LevelRenderInfo& lri,const float animate=0.0f,float tra=1.0f) const{
+            state.render(lri,animations,tra);
             for(const auto& [k,v] : animations){
                 for(const auto& anim : v){
                     anim->draw(k,state,lri,animate);
@@ -470,7 +470,7 @@ void AniMove::draw(const Object* obj,const LevelState& lg,const LevelRenderInfo&
         return;
     }
     pygame::Point dst = lri.loc(lg.where(obj));
-    obj->draw(lri.bbox(glm::mix(lri.loc(src),dst,progress)));
+    obj->draw(lri.bbox(glm::mix(lri.loc(src),dst,progress)),1.0f);
 }
 class GameState{
     Level lvl;
@@ -583,7 +583,7 @@ class GameState{
             }
             return u8""s;
         }
-        void render(const LevelRenderInfo& lri) const{
-            lvl.render(lri,animate);
+        void render(const LevelRenderInfo& lri,float tra=1.0f) const{
+            lvl.render(lri,animate,tra);
         }
 };

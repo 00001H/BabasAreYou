@@ -12,8 +12,8 @@ class ObjectType{
         size_t mfc() const{
             return render->mfcount();
         }
-        void draw(pygame::Rect bbox,ASInfo ai) const{
-            render->render(bbox,ai);
+        void draw(pygame::Rect bbox,ASInfo ai,float transparency) const{
+            render->render(bbox,ai,transparency);
         }
 };
 class Object{
@@ -94,8 +94,8 @@ class Object{
         }
         Object(const ObjectType* t,const Direction d=Direction::UP,const sv spcl=u8""sv) : 
         ot(t), di(d), _special(spcl), mvfrm(0uz){}
-        void draw(pygame::Rect bbox) const{
-            ot->draw(bbox,ASInfo{.mfr=mvfrm,.d=di});
+        void draw(pygame::Rect bbox,float tra) const{
+            ot->draw(bbox,ASInfo{.mfr=mvfrm,.d=di},tra);
             for(const auto& prop : props){
                 prop->draw_vfx(bbox,*this);
             }

@@ -55,7 +55,7 @@ class InputHandler{
             _cd(undo_cd,frame_time);
         }
 };
-void update_level(GameState& level,const LevelRenderInfo& lri){
+void render(GameState& level,const LevelRenderInfo& lri){
     if(level.err_complex()){
         babatext(cmpl_tex,METAPINK,baba_frame(),SCRCNTR,2.4f,true,true);
     }else if(level.won()){
@@ -108,7 +108,7 @@ str run_level(pygame::display::Window& wn,GameState& level,sv initial_notice){
             }
             ih.tick(static_cast<float>(clk.last_frame_time()),notice);
             level.tick_animation(clk.last_frame_time()/input_interval*1.6f);
-            update_level(level,lri);
+            render(level,lri);
             if(level.won()){
                 win_timer += clk.last_frame_time();
                 if(win_timer>1.1f){
@@ -127,16 +127,7 @@ str run_level(pygame::display::Window& wn,GameState& level,sv initial_notice){
     }
     throw quit_game();
 }
-int main(){
-    pygame::init();
-{
-    pygame::glVer(4,6);
-    Window wn{1600,900,u8"_"sv};
-    wn.set_as_OpenGL_target();
-    wn.onresize(default_resize_fun);
-    pygame::setup_template_0();
-    ld_render();
-    load();
+int play(Window& wn){
     LevelSet wrld{u8"levels"s};
     str lvl{u8"l01"sv};
     try{
@@ -151,6 +142,17 @@ int main(){
             }
         }
     }catch(quit_game&){}
+}
+int main(){
+    pygame::init();
+{
+    pygame::glVer(4,6);
+    Window wn{1600,900,u8"_"sv};
+    wn.set_as_OpenGL_target();
+    wn.onresize(default_resize_fun);
+    pygame::setup_template_0();
+    ld_render();
+    load();
 }
     return 0;
 }
