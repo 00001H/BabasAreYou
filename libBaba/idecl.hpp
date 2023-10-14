@@ -11,7 +11,7 @@ using acqu_t = std::vector<pAc>;
 
 class Direction;
 str debug(Direction);
-str debug(const coords_t& c){
+inline str debug(const coords_t& c){
     return u8'('+cppp::to_u8string(c.x)+u8','+cppp::to_u8string(c.y)+u8')';
 }
 class Animation;
@@ -87,7 +87,7 @@ inline size_t baba_frame(){
     return size_t(std::floor(glm::fract(glfwGetTime()*1.4f)*3.0f));
 }
 
-float fit(glm::vec2 obj,glm::vec2 space){
+inline float fit(glm::vec2 obj,glm::vec2 space){
     float xc = (obj.x==0.0f?1.0f:space.x/obj.x);
     float yc = (obj.y==0.0f?1.0f:space.y/obj.y);
     return std::min(xc,yc);

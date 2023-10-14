@@ -3,6 +3,7 @@
 #include<unordered_set>
 #include<pygame.hpp>
 #include<exception>
+#include<execution>
 #include<cassert>
 #include<cstdint>
 #include<utility>
@@ -57,7 +58,7 @@ const pygame::Color BROWN{0.588f,0.294f,0.0f,1.0f};
 
 const pygame::Point ORIGIN{0.0f,0.0f};
 
-cppp::logging::Logger load_logger{u8"Resource loading"sv};
-cppp::logging::Logger rslv_logger{u8"Resolver"sv};
+inline cppp::logging::Logger load_logger{u8"Resource loading"sv};
+inline cppp::logging::Logger rslv_logger{u8"Resolver"sv};
 
 const size_t OBJECT_LIMIT = 100uz;

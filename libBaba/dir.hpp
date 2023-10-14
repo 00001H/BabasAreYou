@@ -14,6 +14,9 @@ class Direction{
             if(d==LEFT||d==UP)return -1;
             return 1;
         }
+        char8_t ascii() const{
+            return u8"^<v>"[d];
+        }
         bool operator==(const Direction other) const{
             return d==other.d;
         }
@@ -52,7 +55,7 @@ class Direction{
             return static_cast<_Di>(uint8_t((uint8_t(d)+1u)%4u));
         }
 };
-str debug(const Direction c){
+inline str debug(const Direction c){
     if(c==Direction::UP){
         return u8"UP"s;
     }else if(c==Direction::DOWN){

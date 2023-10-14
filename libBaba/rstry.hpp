@@ -1,11 +1,9 @@
 #pragma once
 #include"idecl.hpp"
-namespace{
-    cppp::BiMap<str,const ObjectType*> object_types;
-    cppp::BiMap<const ObjectType*,const Word*> words;
-    cppp::BiMap<str,const Property*> props;
-}
-const Property* getprop(sv st){
+inline cppp::BiMap<str,const ObjectType*> object_types;
+inline cppp::BiMap<const ObjectType*,const Word*> words;
+inline cppp::BiMap<str,const Property*> props;
+inline const Property* getprop(sv st){
     return props.lookup(st);
 }
 inline const ObjectType* objtype(sv st){

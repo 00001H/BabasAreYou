@@ -42,10 +42,10 @@ class Suffix{
         Suffix() : ending(std::nullopt){}
         Suffix(const sv suff) : ending(suff){}
 };
-void inline register_simple_noun(sv object_name,const sv dname,const pygame::Color& color,const Countability& c){
+inline void register_simple_noun(sv object_name,const sv dname,const pygame::Color& color,const Countability& c){
     rTWPacked<SimpleNoun>(object_name,new TextRender(dname,color),objtype(object_name),c);
 }
-void inline register_simple_noun_and_plural(sv object_name,const sv dname,const pygame::Color& color,bool suffix_newline=false,const Suffix& suffix={}){
+inline void register_simple_noun_and_plural(sv object_name,const sv dname,const pygame::Color& color,bool suffix_newline=false,const Suffix& suffix={}){
     rTWPacked<SimpleNoun>(object_name,new TextRender(dname,color),objtype(object_name),SINGULAR);
     rTWPacked<SimpleNoun>(suffix(object_name),new TextRender(suffix(dname,suffix_newline),color),objtype(object_name),PLURAL);
 }
@@ -88,7 +88,7 @@ class SentenceScanner{
             return nullptr;
         }
 };
-pRule parse_sentence(const Sentence& stc){
+inline pRule parse_sentence(const Sentence& stc){
     for(const auto& wd : stc){
         if(const Verb* v = dynamic_cast<const Verb*>(wd)){
             return v->formRule(stc);

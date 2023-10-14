@@ -1,5 +1,5 @@
 #pragma once
-#include"../libBaba/baba.hpp"
+#include"baba.hpp"
 class Stop : public Property{
     public:
         ActionResult on_pushed(Object*,RWIState&,Direction,Object*) const override{

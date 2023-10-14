@@ -122,3 +122,16 @@ void NounLike::allAccepts(const objmap_t& mp,const fn& f) const{
         }
     }
 }
+class ObjectSpriteUIC : public uila::UIComponent{
+    Object o;
+    constexpr static float SCAL{2.4f};
+    public:
+        template<typename ...Ea>
+        ObjectSpriteUIC(Ea&& ...ea) : UIComponent(), o(std::forward<Ea>(ea)...){}
+        void draw() const override{
+            o.draw(state.r,1.0f);
+        }
+        glm::vec2 suggest_dimensions() const override{
+            return {SPRITE_DIM*SCAL,SPRITE_DIM*SCAL};
+        }
+};

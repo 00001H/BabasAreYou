@@ -12,5 +12,7 @@ clean: cleanobj
 	del *.exe
 %.o: %.cpp $(HEADERS)
 	g++ -c $< $(COMPOPT)
-../demo.exe: libbaba.a ../demo.cpp $(BMH)
+E:/Lib/libuila.a:
+	
+../demo.exe: libbaba.a ../demo.cpp $(BMH) E:/UILa/lib/libuila.a
 	g++ "../demo.cpp" -o"../demo.exe" $(COMPOPT) -L. -lbaba -lpygame -lglfw3 -lgdi32 -lglad -lfreetype -luila

@@ -1,5 +1,5 @@
 #pragma once
-#include"../libBaba/baba.hpp"
+#include"baba.hpp"
 class TextifyNoun : public NounLike{
     protected:
         bool accepts(const ObjectType* ot) const override{

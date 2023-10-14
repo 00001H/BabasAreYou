@@ -1,7 +1,7 @@
-#include"../libBaba/baba.hpp"
+#include"baba.hpp"
 #include"words.hpp"
 #include"props.hpp"
-void load(){
+inline void load(){
     animodes.try_emplace(u8"none"s,unew<AniSeq>());
     animodes.try_emplace(u8"char"s,unew<CharAniSeq>());
 
